@@ -1,8 +1,10 @@
+from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import patch, Mock, ANY
 
 from vk_api.bot_longpoll import VkBotMessageEvent
 
+import settings
 from bot import Bot
 
 
@@ -47,20 +49,46 @@ class Test1(TestCase):
                 bot.on_event.assert_any_call(obj)
                 assert bot.on_event.call_count == count
 
-    def test_on_event(self):
-        event = VkBotMessageEvent(raw=self.RAW_EVENT)
-
+    INPUTS = [
+        "Привет",
+        "А когда?",
+        "Где будет конференция?",
+        "Зарегистрируй меня",
+        "Вениамин Эдуардович",
+        "мой адрес cherviak@true",
+        "cherviak@true.fru",
+    ]
+    EXPECTED_OUTPUTS = [
+        settings.DEFAULT_ANSWER,
+        settings.INTENTS[0]['answer'],
+        settings.INTENTS[1]['answer'],
+        settings.SCENARIOS['registration']['steps']['step1']['text'],
+        settings.SCENARIOS['registration']['steps']['step2']['text'],
+        settings.SCENARIOS['registration']['steps']['step2']['failure_text'],
+        settings.SCENARIOS['registration']['steps']['step3']['text'].format(name="Вениамин Эдуардович", email="cherviak@true.fru")
+    ]
+    def test_run_ok(self):
         send_mock = Mock()
+        api_mock = Mock()
+        api_mock.messages.send = send_mock
 
-        with patch("bot.vk_api.VkApi"):
-            with patch("bot.VkBotLongPoll"):
-                bot = Bot("", "")
-                bot.api = Mock()
-                bot.api.messages.send = send_mock
+        events = []
+        for input_text in self.INPUTS:
+            event = deepcopy(self.RAW_EVENT)
+            event['object']['message']['text'] = input_text
+            events.append(VkBotMessageEvent(event))
+        long_poller_mock = Mock()
+        long_poller_mock.listen = Mock(return_value=events)
 
-                bot.on_event(event)
+        with patch('bot.VkBotLongPoll', return_value=long_poller_mock):
+            bot = Bot('', '')
+            bot.api = api_mock
+            bot.run()
 
-        send_mock.assert_called_once_with(
-            message=self.RAW_EVENT['object']['message']['text'],
-            random_id=ANY,
-            peer_id=self.RAW_EVENT['object']['message']['peer_id'],)
+        assert send_mock.call_count == len(self.INPUTS)
+
+        real_outputs = []
+        for call in send_mock.call_args_list:
+            args, kwargs = call
+            real_outputs.append(kwargs['message'])
+        assert real_outputs == self.EXPECTED_OUTPUTS
