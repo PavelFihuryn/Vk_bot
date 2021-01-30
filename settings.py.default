@@ -1,4 +1,4 @@
-TOKEN = 'xxxx'
+TOKEN = ''
 GROUP_ID = 000000000
 
 INTENTS = [
@@ -26,7 +26,7 @@ SCENARIOS = {
         "first_step": "step1",
         "steps": {
             "step1": {
-                "text": "Чтобы зарегистрироваться, введите ваше имя. Оно будет написао на бэйджике.",
+                "text": "Чтобы зарегистрироваться, введите ваше имя. Оно будет написано на бэйджике.",
                 "failure_text": "Имя должно состоять из 3-30 букв и дефиса. Попробуйте еще раз",
                 "handler": "handler_name",
                 "next_step": "step2"
@@ -38,8 +38,9 @@ SCENARIOS = {
                 "next_step": "step3"
             },
             "step3": {
-                "text": "Спасибо за регисрацию, {name}! Мы отправили на {email} билет, распечатайте его.",
+                "text": "Спасибо за регисрацию, {name}! Мы отправили Вам билет и копию на {email}, распечатайте его.",
                 "failure_text": None,
+                "image": "draw_ticket_handler",
                 "handler": None,
                 "next_step": None
             }
@@ -54,7 +55,7 @@ DEFAULT_ANSWER = "Не знаю, как на это ответить. " \
 DB_CONFIG = dict(
     provider='postgres',
     user='postgres',
-    password='xxxx',
+    password='1111',
     host='localhost',
     database='vk_chat_bot'
 )
