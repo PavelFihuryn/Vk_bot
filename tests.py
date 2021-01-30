@@ -2,11 +2,13 @@ from copy import deepcopy
 from unittest import TestCase
 from unittest.mock import patch, Mock
 
+import requests
 from pony.orm import db_session, rollback
 from vk_api.bot_longpoll import VkBotMessageEvent
 
 import settings
 from bot import Bot
+from draw_ticket import draw_ticket
 
 
 def isolate_db(test_func):
@@ -51,7 +53,7 @@ class Test1(TestCase):
             with patch("bot.VkBotLongPoll", return_value=long_poller_listen_mock):
                 bot = Bot("", "")
                 bot.on_event = Mock()
-
+                bot.send_image = Mock()
                 bot.run()
 
                 bot.on_event.assert_called()
@@ -94,6 +96,7 @@ class Test1(TestCase):
         with patch('bot.VkBotLongPoll', return_value=long_poller_mock):
             bot = Bot('', '')
             bot.api = api_mock
+            bot.send_image = Mock()
             bot.run()
 
         assert send_mock.call_count == len(self.INPUTS)
@@ -103,3 +106,16 @@ class Test1(TestCase):
             args, kwargs = call
             real_outputs.append(kwargs['message'])
         assert real_outputs == self.EXPECTED_OUTPUTS
+
+    def test_draw_ticket(self):
+        with open("files/ava.png", "rb") as avatar_file:
+            avatar_mock = Mock()
+            avatar_mock.content = avatar_file.read()
+
+        with patch("requests.get", return_value=avatar_mock):
+            ticket_file = draw_ticket("Ivan", "one@two.com")
+
+        with open("files/ticket_test.png", "rb") as test_file:
+            bytes_file = test_file.read()
+
+        assert ticket_file.read() == bytes_file
